@@ -37,7 +37,7 @@ CORE_URL = (
 Database.credentials = {
     "user": os.environ.get("UPOW_DATABASE_USER", "upow"),
     "password": os.environ.get("UPOW_DATABASE_PASSWORD", ""),
-    "database": os.environ.get("UPOW_DATABASE_NAME", "upow"),
+    "database": os.environ.get("UPOW_DATABASE_NAME", "upow_go"),
 }
 
 
