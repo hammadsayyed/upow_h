@@ -464,7 +464,20 @@ async def push_block(
             "ok": False,
             "error": "Blocks missing, had to sync according to sender node, block may have been accepted",
         }
-    if next_block_id > block_no:
+    should_reorganize: bool = False
+    if (current_block_height := next_block_id - 1) == block_no:
+        last_block = await db.get_last_block()
+        assert current_block_height == last_block['id']
+
+        last_block_previous_hash, _, _, last_block_timestamp, _, _ = split_block_content(last_block['content'])
+        if previous_hash == last_block_previous_hash and last_block['hash'] != sha256(block_content):
+            # Orphan block occurred.
+            current_block_timestamp = split_block_content(block_content)[3]
+            if current_block_timestamp < last_block_timestamp:
+                # Reorganization should be done.
+                should_reorganize = await db.remove_block_with_tx(block_no)
+
+    if next_block_id > block_no and not should_reorganize:
         return {"ok": False, "error": "Too old block"}
     final_transactions = []
     hashes = []

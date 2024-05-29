@@ -591,79 +591,99 @@ class Database:
         if validator_ballot_input:
             await self.remove_validator_ballot_votes(validator_ballot_input)
 
-    async def remove_unspent_outputs(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_unspent_outputs(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute('DELETE FROM unspent_outputs WHERE (tx_hash, index) = ANY($1::tx_output[])',
                                          inputs)
         except:
-            await self.remove_unspent_outputs(transactions)
+            await self.remove_unspent_outputs(transactions, inputs=inputs)
 
-    async def remove_inode_registration_output(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_inode_registration_output(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute(
                     'DELETE FROM inode_registration_output WHERE (tx_hash, index) = ANY($1::tx_output[])',
                     inputs)
         except:
-            await self.remove_inode_registration_output(transactions)
+            await self.remove_inode_registration_output(transactions, inputs=inputs)
 
-    async def remove_validators_voting_power(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_validator_registration_output(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
+        try:
+            async with self.pool.acquire() as connection:
+                await connection.execute(
+                    'DELETE FROM validator_registration_output WHERE (tx_hash, index) = ANY($1::tx_output[])',
+                    inputs)
+        except:
+            await self.remove_validator_registration_output(transactions, inputs=inputs)
+
+    async def remove_validators_voting_power(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute(
                     'DELETE FROM validators_voting_power WHERE (tx_hash, index) = ANY($1::tx_output[])',
                     inputs)
         except:
-            await self.remove_validators_voting_power(transactions)
+            await self.remove_validators_voting_power(transactions, inputs=inputs)
 
-    async def remove_delegates_voting_power(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_delegates_voting_power(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute(
                     'DELETE FROM delegates_voting_power WHERE (tx_hash, index) = ANY($1::tx_output[])',
                     inputs)
         except:
-            await self.remove_delegates_voting_power(transactions)
+            await self.remove_delegates_voting_power(transactions, inputs=inputs)
 
-    async def remove_inode_ballot_votes(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_inode_ballot_votes(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute('DELETE FROM inodes_ballot WHERE (tx_hash, index) = ANY($1::tx_output[])',
                                          inputs)
         except:
-            await self.remove_inode_ballot_votes(transactions)
+            await self.remove_inode_ballot_votes(transactions, inputs=inputs)
 
-    async def remove_validator_ballot_votes(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_validator_ballot_votes(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute('DELETE FROM validators_ballot WHERE (tx_hash, index) = ANY($1::tx_output[])',
                                          inputs)
         except:
-            await self.remove_validator_ballot_votes(transactions)
+            await self.remove_validator_ballot_votes(transactions, inputs=inputs)
 
-    async def remove_pending_spent_outputs(self, transactions: List[Transaction]) -> None:
-        inputs = sum(
-            [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
-            [])
+    async def remove_pending_spent_outputs(self, transactions: List[Transaction] = None, inputs: List[Tuple[str, int]] = None) -> None:
+        if transactions:
+            inputs = sum(
+                [[(tx_input.tx_hash, tx_input.index) for tx_input in transaction.inputs] for transaction in transactions],
+                [])
         async with self.pool.acquire() as connection:
             await connection.execute('DELETE FROM pending_spent_outputs WHERE (tx_hash, index) = ANY($1::tx_output[])',
                                      inputs)
@@ -1447,3 +1467,173 @@ class Database:
         transaction['outputs'] = [{'address': output.address, 'amount': output.amount,
                                    'type': output.transaction_type.name} for output in tx.outputs]
         return transaction
+
+    async def remove_transaction_outputs(self, transactions: List[Transaction]):
+        unspent_outputs = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type in
+              (OutputType.REGULAR, OutputType.STAKE, OutputType.UN_STAKE)] for transaction in transactions], [])
+
+        inode_registration_outputs = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.INODE_REGISTRATION] for
+             transaction in
+             transactions], [])
+
+        validator_registration_outputs = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.VALIDATOR_REGISTRATION] for
+             transaction in transactions], [])
+
+        validator_voting_power = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.VALIDATOR_VOTING_POWER] for
+             transaction in transactions], [])
+
+        delegate_voting_power = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.DELEGATE_VOTING_POWER] for
+             transaction in transactions], [])
+
+        inode_votes = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.VOTE_AS_VALIDATOR] for
+             transaction in transactions], [])
+
+        validator_votes = sum(
+            [[(transaction.hash(), index) for index, output in
+              enumerate(transaction.outputs) if output.transaction_type == OutputType.VOTE_AS_DELEGATE] for
+             transaction in transactions], [])
+
+        if unspent_outputs:
+            await self.remove_unspent_outputs(inputs=unspent_outputs)
+
+        if inode_registration_outputs:
+            await self.remove_inode_registration_output(inputs=inode_registration_outputs)
+
+        if validator_voting_power:
+            await self.remove_validators_voting_power(inputs=validator_voting_power)
+
+        if delegate_voting_power:
+            await self.remove_delegates_voting_power(inputs=delegate_voting_power)
+
+        if validator_registration_outputs:
+            await self.remove_validator_registration_output(inputs=validator_registration_outputs)
+
+        if inode_votes:
+            await self.remove_inode_ballot_votes(inputs=inode_votes)
+
+        if validator_votes:
+            await self.remove_validator_ballot_votes(inputs=validator_votes)
+
+    async def restore_inputs(self, transactions: List[Transaction]):
+        inode_inputs = [transaction for transaction in transactions
+                        if transaction.transaction_type == TransactionType.INODE_DE_REGISTRATION]
+
+        validator_vote_input = [transaction for transaction in transactions
+                                if transaction.transaction_type == TransactionType.VOTE_AS_VALIDATOR]
+
+        delegate_vote_input = [transaction for transaction in transactions
+                               if transaction.transaction_type == TransactionType.VOTE_AS_DELEGATE]
+
+        inode_ballot_input = [transaction for transaction in transactions
+                              if transaction.transaction_type == TransactionType.REVOKE_AS_VALIDATOR]
+
+        validator_ballot_input = [transaction for transaction in transactions
+                                  if transaction.transaction_type == TransactionType.REVOKE_AS_DELEGATE]
+
+        unspent_outputs = [transaction for transaction in transactions if transaction.transaction_type
+                           not in (TransactionType.INODE_DE_REGISTRATION, TransactionType.VOTE_AS_VALIDATOR,
+                                   TransactionType.VOTE_AS_DELEGATE, TransactionType.REVOKE_AS_VALIDATOR,
+                                   TransactionType.REVOKE_AS_DELEGATE)]
+
+        # unspent_outputs = sum(
+        #     [[(transaction.hash(), index, output.address, output.is_stake) for index, output in
+        #       enumerate(transaction.outputs) if output.transaction_type in
+        #       (OutputType.REGULAR, OutputType.STAKE, OutputType.UN_STAKE)] for transaction in transactions], [])
+
+        if unspent_outputs:
+            # unspent_outputs_tuples = []
+            # for tx in unspent_outputs:
+            #     for tx_input in tx.inputs:
+            #         is_stake = any(tx_output == OutputType.UN_STAKE for tx_output in tx.outputs)
+            #         unspent_outputs_tuples.append((tx_input.tx_hash, tx_input.index, await tx_input.get_address(),
+            #                                        is_stake))
+            unspent_outputs = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_address(),
+                                     any(tx_output == OutputType.UN_STAKE for tx_output in transaction.outputs))
+                                    for tx_input in transaction.inputs] for transaction in unspent_outputs], [])
+            await self.add_unspent_outputs(unspent_outputs)
+
+        if inode_inputs:
+            inode_inputs = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_address())
+                                 for tx_input in transaction.inputs] for transaction in inode_inputs], [])
+            await self.add_inode_registration_outputs(inode_inputs)
+
+        if validator_vote_input:
+            validator_vote_input = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_voter_address())
+                                         for tx_input in transaction.inputs]
+                                        for transaction in validator_vote_input], [])
+            await self.add_validator_voting_power(validator_vote_input)
+
+        if delegate_vote_input:
+            delegate_vote_input = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_voter_address())
+                                        for tx_input in transaction.inputs]
+                                       for transaction in delegate_vote_input], [])
+            await self.add_delegates_voting_power(delegate_vote_input)
+
+        if inode_ballot_input:
+            inode_ballot_input = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_address())
+                                       for tx_input in transaction.inputs]
+                                      for transaction in inode_ballot_input], [])
+            await self.add_vote_to_inode_ballots(inode_ballot_input)
+
+        if validator_ballot_input:
+            validator_ballot_input = sum([[(tx_input.tx_hash, tx_input.index, await tx_input.get_address())
+                                           for tx_input in transaction.inputs]
+                                          for transaction in validator_ballot_input], [])
+            await self.add_vote_to_validators_ballot(validator_ballot_input)
+
+    async def delete_transactions_by_block(self, block_hash: str):
+        async with self.pool.acquire() as connection:
+            await connection.execute('DELETE FROM transactions WHERE block_hash = $1', block_hash)
+
+    async def remove_block_with_tx(self, block_no: int):
+        block_to_remove = await self.get_blocks(block_no, limit=1)
+        assert block_to_remove
+        block_to_remove = block_to_remove[0]
+        transactions_to_remove = []
+        # transactions_hashes = []
+        transactions_to_remove.extend(
+            [await Transaction.from_hex(tx, False) for tx in block_to_remove['transactions']])
+        # transactions_hashes.extend([sha256(tx) for tx in block_to_remove['transactions']])
+
+        try:
+            await self.remove_transaction_outputs(transactions_to_remove)
+        except Exception as e:
+            print(f'remove_transaction_outputs error: {e}')
+            return False
+
+        try:
+            await self.restore_inputs([tx for tx in transactions_to_remove if isinstance(tx, Transaction)])
+        except Exception as e:
+            print(f'restore_inputs error: {e}')
+            return False
+
+        try:
+            await self.delete_transactions_by_block(block_to_remove['block']['hash'])
+        except Exception as e:
+            print(f'delete_transactions_by_block error: {e}')
+            return False
+
+        try:
+            await self.delete_block(block_no)
+        except Exception as e:
+            print(f'delete_block error: {e}')
+            return False
+
+        # Add transactions again in pending
+        for tx in transactions_to_remove:
+            if isinstance(tx, Transaction):
+                await self.add_pending_transaction(tx)
+        return True
+
