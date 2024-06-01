@@ -476,6 +476,14 @@ async def push_block(
             if current_block_timestamp < last_block_timestamp:
                 # Reorganization should be done.
                 should_reorganize = await db.remove_block_with_tx(block_no)
+            else:
+                # is_deleted is False because this version of the block is not deleted since it is never added and ignored
+                await db.add_orphan_block(block_no,
+                                          sha256(block_content),
+                                          block_content,
+                                          txs,
+                                          False)
+
 
     if next_block_id > block_no and not should_reorganize:
         return {"ok": False, "error": "Too old block"}

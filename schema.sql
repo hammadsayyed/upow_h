@@ -80,5 +80,14 @@ CREATE TABLE IF NOT EXISTS inodes_ballot (
     address TEXT NULL
 );
 
+CREATE TABLE IF NOT EXISTS orphan_blocks (
+	id SERIAL PRIMARY KEY,
+	block_no INTEGER NOT NULL,
+	hash CHAR(64) UNIQUE,
+	content TEXT NOT NULL,
+	transactions TEXT[],
+	is_deleted BOOLEAN
+);
+
 CREATE INDEX tx_hash_idx ON unspent_outputs (tx_hash);
 CREATE INDEX block_hash_idx ON transactions (block_hash);

@@ -76,6 +76,18 @@ class Database:
                 except UndefinedColumnError:
                     await connection.execute(
                         'ALTER TABLE pending_transactions ADD COLUMN propagation_time TIMESTAMP(0) NOT NULL DEFAULT NOW()')
+                try:
+                    await connection.fetchrow('SELECT * FROM orphan_blocks LIMIT 1')
+                except UndefinedTableError:
+                    print('Creating orphan_blocks table')
+                    await connection.execute("""CREATE TABLE IF NOT EXISTS orphan_blocks (
+                            id SERIAL PRIMARY KEY,
+                            block_no INTEGER NOT NULL,
+                            hash CHAR(64) UNIQUE,
+                            content TEXT NOT NULL,
+                            transactions TEXT[],
+                            is_deleted BOOLEAN
+                            )""")
 
         Database.instance = self
         return self
@@ -1597,7 +1609,7 @@ class Database:
         async with self.pool.acquire() as connection:
             await connection.execute('DELETE FROM transactions WHERE block_hash = $1', block_hash)
 
-    async def remove_block_with_tx(self, block_no: int):
+    async def remove_block_with_tx(self, block_no: int, is_orphan_block: bool = True):
         block_to_remove = await self.get_blocks(block_no, limit=1)
         assert block_to_remove
         block_to_remove = block_to_remove[0]
@@ -1606,6 +1618,12 @@ class Database:
         transactions_to_remove.extend(
             [await Transaction.from_hex(tx, False) for tx in block_to_remove['transactions']])
         # transactions_hashes.extend([sha256(tx) for tx in block_to_remove['transactions']])
+        if is_orphan_block:
+            await self.add_orphan_block(block_no,
+                                        block_to_remove['block']['hash'],
+                                        block_to_remove['block']['content'],
+                                        [tx.hex() for tx in transactions_to_remove if isinstance(tx, Transaction)],
+                                        True)   # is_deleted is True because this version of the block is deleted
 
         try:
             await self.remove_transaction_outputs(transactions_to_remove)
@@ -1636,4 +1654,21 @@ class Database:
             if isinstance(tx, Transaction):
                 await self.add_pending_transaction(tx)
         return True
+
+    async def add_orphan_block(self, block_no, block_hash, block_content, transactions: List, is_deleted: bool):
+        try:
+            async with self.pool.acquire() as connection:
+                stmt = await connection.prepare(
+                        '''INSERT INTO orphan_blocks (block_no, hash, content, transactions, is_deleted)
+                         VALUES ($1, $2, $3, $4, $5)''')
+                await stmt.fetchval(
+                    block_no,
+                    block_hash,
+                    block_content,
+                    transactions,
+                    is_deleted
+                )
+        except Exception as e:
+            print(f'add_orphan_block: {e}')
+
 
