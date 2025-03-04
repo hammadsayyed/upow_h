@@ -1,0 +1,26 @@
+import asyncio
+
+from icecream import ic
+
+from upow.upow_transactions import Transaction
+
+_print = print
+print = ic
+
+
+async def tx_hex_to_data(tx_hex):
+    tx = await Transaction.from_hex(tx_hex, False)
+    _print([tx_input.__dict__ for tx_input in tx.inputs])
+    print([tx_input.__dict__ for tx_input in tx.inputs])
+
+tx_hex_1 = '03019ff884d0433d35527522ac3c6e7fb2e81f0f7027dcb0dabfd397892668e2368b0000022bdcdb65474e07ff5f4565d21c38c5cfe20ccc2b595b83dec122e5e6f1ffb25e990400ca9a3b002b9d8f1aa97c839d345624b996ed202b99f6947880dfd6c701442ebbb96fb8132005001edc0c1700005f5b9454ca17c750c2f1a4406c939dbf536a0146f18cd5d015046decae0c52177e8b5934d76a8b6aff56b5f52a3909a1e8c2a779de2071712e2dc2c7f320df82'
+tx_hex_1_hash = '869c75103aedbbeaef10ebd070f94c600c7632565bb45036034ee013789d75fb'
+tx_hex_1_input = ('9ff884d0433d35527522ac3c6e7fb2e81f0f7027dcb0dabfd397892668e2368b', 0)
+
+
+tx_hex_2 = '0301869c75103aedbbeaef10ebd070f94c600c7632565bb45036034ee013789d75fb0100022bdcdb65474e07ff5f4565d21c38c5cfe20ccc2b595b83dec122e5e6f1ffb25e990400ca9a3b002b9d8f1aa97c839d345624b996ed202b99f6947880dfd6c701442ebbb96fb8132005005441d11600009e9b26a37cec8c7cecd50a83f23c54918630d8f3b248d192373188bf624931a2706735ea4ab25ef6244cd1db1ac0b98467cbe610d3f3a114baf19f4239628763'
+tx_hex_2_hash = 'b9c32df2ea94ebec3357b68aa6f594ab458e281d6269ed63578fc73606462d0d'
+tx_hex_2_input = ('869c75103aedbbeaef10ebd070f94c600c7632565bb45036034ee013789d75fb', 1)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(tx_hex_to_data(tx_hex_2))
