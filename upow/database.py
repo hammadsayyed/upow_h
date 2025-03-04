@@ -1671,4 +1671,13 @@ class Database:
         except Exception as e:
             print(f'add_orphan_block: {e}')
 
+    async def delete_orphan_block_by_content(self, block_content: str):
+        async with self.pool.acquire() as connection:
+            await connection.execute('DELETE FROM orphan_blocks WHERE content = $1', block_content)
+
+    async def get_orphan_block(self, block_hash: str) -> dict:
+        async with self.pool.acquire() as connection:
+            block = await connection.fetchrow('SELECT * FROM orphan_blocks WHERE hash = $1', block_hash)
+        return dict(block) if block is not None else None
+
 

@@ -31,7 +31,7 @@ from upow.manager import (
     calculate_difficulty,
     clear_pending_transactions,
     block_to_bytes,
-    get_circulating_supply, create_block_in_syncing_old,
+    get_circulating_supply, create_block_in_syncing_old, reorganize_block, check_block, get_orphan_block,
 )
 from upow.node.nodes_manager import NodesManager, NodeInterface
 from upow.node.utils import ip_is_local
@@ -471,29 +471,38 @@ async def push_block(
             "ok": False,
             "error": "Blocks missing, had to sync according to sender node, block may have been accepted",
         }
-    should_reorganize: bool = False
-    if (current_block_height := next_block_id - 1) == block_no:
-        last_block = await db.get_last_block()
-        assert current_block_height == last_block['id']
+    # should_reorganize: bool = False
+    last_block = await db.get_last_block()
+    if last_block['id'] == block_no:
+        # last_block = await db.get_last_block()
+        # assert current_block_height == last_block['id']
 
         last_block_previous_hash, _, _, last_block_timestamp, _, _ = split_block_content(last_block['content'])
         if previous_hash == last_block_previous_hash and last_block['hash'] != sha256(block_content):
-            # Orphan block occurred.
-            current_block_timestamp = split_block_content(block_content)[3]
-            if current_block_timestamp < last_block_timestamp:
-                # Reorganization should be done.
-                should_reorganize = await db.remove_block_with_tx(block_no)
-            else:
-                # is_deleted is False because this version of the block is not deleted since it is never added and ignored
-                await db.add_orphan_block(block_no,
-                                          sha256(block_content),
-                                          block_content,
-                                          txs,
-                                          False)
+            # Orphan block created.
+            await db.add_orphan_block(block_no,
+                                      sha256(block_content),
+                                      block_content,
+                                      txs,
+                                      False)
+            error = "Orphan block created."
+            print(f'{error} at {block_no}')
+            return {"ok": False, "error": error}
+            # current_block_timestamp = split_block_content(block_content)[3]
+            # if current_block_timestamp < last_block_timestamp:
+            #     # Reorganization should be done.
+            #     should_reorganize = await db.remove_block_with_tx(block_no)
+            # else:
+            #     # is_deleted is False because this version of the block is not deleted since it is never added and ignored
+            #     await db.add_orphan_block(block_no,
+            #                               sha256(block_content),
+            #                               block_content,
+            #                               txs,
+            #                               False)
 
-
-    if next_block_id > block_no and not should_reorganize:
+    if next_block_id > block_no: # and not should_reorganize:
         return {"ok": False, "error": "Too old block"}
+
     final_transactions = []
     hashes = []
     for tx_hex in txs:
@@ -515,6 +524,14 @@ async def push_block(
             else:
                 return {"ok": False, "error": "Transaction hash not found"}
         final_transactions.extend(pending_transactions)
+
+    if last_block != {} and previous_hash != last_block["hash"]:
+        orphan_block = await get_orphan_block(previous_hash)
+        if orphan_block:
+            if not await check_block(block_content, final_transactions, (orphan_block['difficulty'], orphan_block)):
+                return {"ok": False, "error": "Block is not valid."}
+            await reorganize_block(orphan_block['block_no'], orphan_block['content'], orphan_block['transactions'])
+
     error_list = []
     if not await create_block(block_content, final_transactions, error_list=error_list):
         return {"ok": False, "error": error_list[0]} if error_list else {"ok": False}
@@ -820,6 +837,9 @@ async def get_address_transactions(
             }
             }
 
+@app.get("/remove_block")
+async def remove_block(request: Request, block_no: int = None):
+    await db.remove_block_with_tx(block_no)
 
 @app.get("/add_node")
 @limiter.limit("10/minute")

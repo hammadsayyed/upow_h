@@ -771,5 +771,42 @@ async def create_block_in_syncing_old(
     return True
 
 
+async def get_orphan_block(block_hash: str) -> dict:
+    database: Database = Database.instance
+    block = await database.get_orphan_block(block_hash)
+    if block:
+        split_block_content(block['content'])
+        previous_hash, address, merkle_tree, content_time, content_difficulty, random = (
+            split_block_content(block['content'])
+        )
+        block['address'] = address
+        block['timestamp'] = content_time
+        block['random'] = random
+        block['difficulty'] = content_difficulty
+    return block
+
+
+async def reorganize_block(block_no: int, block_content: str, transactions: List):
+    database: Database = Database.instance
+    # second_last_block = await database.get_blocks(block_no-1, limit=1)
+    # assert second_last_block
+    # second_last_block = second_last_block[0]['block']
+    if await database.remove_block_with_tx(block_no):
+        final_transactions = []
+        hashes = []
+        for tx_hex in transactions:
+            if len(tx_hex) == 64:  # it's an hash
+                hashes.append(tx_hex)
+            else:
+                final_transactions.append(await Transaction.from_hex(tx_hex))
+        if hashes:
+            pending_transactions = await database.get_pending_transactions_by_hash(hashes)
+            final_transactions.extend(pending_transactions)
+        if await create_block(block_content, final_transactions):
+            await database.delete_orphan_block_by_content(block_content)
+            return True
+    return False
+
+
 class Manager:
     difficulty: Tuple[float, dict] = None
