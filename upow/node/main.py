@@ -837,9 +837,26 @@ async def get_address_transactions(
             }
             }
 
+
 @app.get("/remove_block")
 async def remove_block(request: Request, block_no: int = None):
-    await db.remove_block_with_tx(block_no)
+    await db.remove_block_with_tx(block_no, False)
+
+
+@app.get("/remove_blocks")
+async def remove_blocks_endpoint(request: Request, num_blocks: int):
+    """
+    API endpoint to remove multiple recent blocks
+
+    :param num_blocks: Number of most recent blocks to remove
+    :return: List of successfully removed block numbers
+    """
+    removed_blocks = await db.remove_blocks_new(num_blocks, False)
+    return {
+        "message": f"Removed {len(removed_blocks)} blocks",
+        "removed_blocks": removed_blocks
+    }
+
 
 @app.get("/add_node")
 @limiter.limit("10/minute")

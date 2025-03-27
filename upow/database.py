@@ -1611,7 +1611,7 @@ class Database:
 
     async def remove_block_with_tx(self, block_no: int, is_orphan_block: bool = True):
         block_to_remove = await self.get_blocks(block_no, limit=1)
-        assert block_to_remove
+        assert block_to_remove, f'No {block_no} block found in DB.'
         block_to_remove = block_to_remove[0]
         transactions_to_remove = []
         # transactions_hashes = []
@@ -1679,5 +1679,43 @@ class Database:
         async with self.pool.acquire() as connection:
             block = await connection.fetchrow('SELECT * FROM orphan_blocks WHERE hash = $1', block_hash)
         return dict(block) if block is not None else None
+
+    async def remove_blocks_new(self, num_blocks: int, is_orphan_block: bool = True):
+        """
+        Remove multiple recent blocks from the blockchain.
+
+        :param num_blocks: Number of most recent blocks to remove
+        :param is_orphan_block: Whether to mark removed blocks as orphan blocks
+        :return: List of block numbers that were successfully removed
+        """
+        # Get the latest block number
+        latest_block = await self.get_last_block()
+        assert latest_block, f"No block in blockchain"
+        latest_block = latest_block["id"]
+
+        # Validate input
+        if num_blocks <= 0:
+            raise ValueError("Number of blocks to remove must be positive")
+
+        if num_blocks > latest_block:
+            num_blocks = latest_block
+
+        # Track successfully removed blocks
+        removed_blocks = []
+
+        # Remove blocks from most recent to oldest
+        for block_no in range(latest_block, latest_block - num_blocks, -1):
+            try:
+                # Remove individual block
+                success = await self.remove_block_with_tx(block_no, is_orphan_block)
+
+                if success:
+                    removed_blocks.append(block_no)
+                else:
+                    print(f"Failed to remove block {block_no}")
+            except Exception as e:
+                print(f"Error removing block {block_no}: {e}")
+
+        return removed_blocks
 
 
